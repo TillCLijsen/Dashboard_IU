@@ -1,0 +1,559 @@
+# Dashboard_IU
+
+#Import von den nötigen Bibliotheken
+import dash
+from dash import dcc, html
+import plotly.express as px
+import plotly.graph_objects as go
+from dash.dependencies import Input, Output, State
+
+# Daten vorbereiten
+student_name = "Max Mustermann"
+studiengang = "Angewandte Künstliche Intelligenz"
+total_credits = 180
+earned_credits = 0
+ziel_credits = 15
+
+modul = []
+initial_notendurchschnitt = 0
+
+# Plotly Kreisdiagramm (Credits)
+"""Das Kreisdiagramm für die Anzeige von dem Studienfortschritt bezüglich Credits. 
+Mit dem Startwert 0 und dem Ziel pro Semester von 30 Credits"""
+fig_pie = go.Figure(
+    go.Pie(
+        values=[earned_credits, ziel_credits - earned_credits],
+        labels=["Erreichte Credits", "Verbleibende Credits"],
+        hole=0.5,
+        marker=dict(colors=["green", "lightgrey"])
+    )
+)
+fig_pie.update_layout(
+    showlegend=True,
+    title="Credits pro Semester",
+)
+#Dash-app erstellen
+app = dash.Dash(__name__)
+
+#Defintition des Layouts und das unsichtbare Speichern mithilfe von Store
+app.layout = html.Div([
+    dcc.Store(id="store-earned-credits", data=0),
+    dcc.Store(id="store-modul", data=modul),
+
+    # HEADER
+    html.Div([
+        #Name des Students
+        html.Div(
+            student_name,
+            style={
+                "textAlign": "center",
+                "width": "200px",
+                "fontSize": "20px",
+                "fontWeight": "bold",
+                "marginTop": "60px",
+                "padding": "10px",
+                "marginLeft": "100px",
+                "marginRight": "20px",
+                "border": "2px solid black",
+                "borderRadius": "10px",
+                "marginBottom": "10px"
+            }
+        ),
+        html.Div(
+            # Logo mit URl Methode
+            html.Img(
+                src="https://content.presspage.com/uploads/2867/1920_iu-logo-d-black-rgb-horizontal.png?10000",
+                style={"height": "50px"}
+            ),
+            style={
+                "width": "200px",
+                "marginLeft": "600px",
+                "marginTop": "-60px",
+                "textAlign": "center",
+            }
+        ),
+        #Studiengangs-Name rechte Seite
+        html.Div(
+            studiengang,
+            style={
+                "width": "300px",
+                "textAlign": "center",
+                "padding": "10px",
+                "fontSize": "20px",
+                "marginLeft": "1075px",
+                "marginTop": "-60px",
+                "border": "2px solid black",
+                "fontWeight": "bold",
+                "borderRadius": "10px",
+            }
+        ),
+    ]),
+
+    # Aufteilung des ganzen Dashboards in drei Spalten
+    html.Div([
+        # 1) linke Spalte: Ziel 1 und Credits pro Semester
+        html.Div([
+            html.Div([
+                html.H3("Ziel 1: 15 Credits pro Semester", style={
+                    "textAlign": "center",
+                    "border": "2px solid black",
+                    "borderRadius": "10px",
+                    "padding": "5px",
+                    "marginLeft": "10px",
+                    "marginTop": "60px",
+                    "marginBottom": "20px",
+                }),
+                dcc.Graph(
+                    id="kreisdiagramm",
+                    figure=fig_pie,
+                    style={
+                        "textAlign": "center",
+                        "height": "450px",
+                        "width": "450px",
+                        "margin": "0px",
+                        "padding": "0px",
+                    }
+                ),
+                # Eingabefeld + Speicher-Button
+                dcc.Input(
+                    id="credits-input",
+                    type="number",
+                    placeholder="Neue Credits eingeben",
+                    style={
+                        "position": "absolute",
+                        "top": "600px",
+                        "left": "10px",
+                        "padding": "10px",
+                        "fontSize": "16px",
+                        "borderRadius": "5px",
+                        "fontWeight": "bold",
+                        "width": "200px",
+                        "textAlign": "center",
+                    }
+                ),
+                html.Button(
+                    "Speichern",
+                    id="save-button",
+                    n_clicks=0,
+                    style={
+                        "position": "absolute",
+                        "top": "600px",
+                        "left": "237px",
+                        "padding": "10px",
+                        "fontSize": "16px",
+                        "borderRadius": "5px",
+                    }
+                ),
+                #Anzeige der gesamten Credits + Reset-Button
+                html.Div([
+                    html.Div(
+                        id="credits-counter",
+                        children=f"0/{total_credits}",
+                        style={
+                            "position": "absolute",
+                            "Top": "650px",
+                            "left": "10px",
+                            "textAlign": "center",
+                            "fontSize": "16px",
+                            "fontWeight": "bold",
+                            "border": "2px solid black",
+                            "borderRadius": "5px",
+                            "padding": "10px",
+                            "width": "200px",
+                        }
+                    ),
+                    html.Button(
+                        "Reset",
+                        id="reset-button",
+                        n_clicks=0,
+                        style={
+                            "padding": "10px",
+                            "fontSize": "16px",
+                            "borderRadius": "5px",
+                            "width": "97px",
+                            "position": "absolute",
+                            "left": "237px",
+                            "top": "664px",
+                        }
+                    ),
+                ])
+            ], style={"textAlign": "center"}),
+        ], style={"textAlign": "center"
+
+        }),
+
+        # 2) Die mittlere Spalte: Aktive Module + Note + Credits
+        html.Div([
+            html.H3("Aktive Module", style={
+                "textAlign": "center",
+                "border": "2px solid black",
+                "borderRadius": "10px",
+                "padding": "5px",
+                "marginTop": "43px",
+                "marginBottom": "20px",
+            }),
+            #Erstellung der Modul-Liste
+            html.Ul(
+                id="modul-list",
+                children=[],
+                style={
+                    "textAlign": "left",
+                    "fontSize": "18px",
+                    "listStyleType": "disc",
+                }
+            ),
+            #Feld für die Eingabe der Module
+            html.Div([
+                html.Hr(),
+                html.H4("Neues Modul Hinzufügen:", style={"marginTop": "20px", "textAlign": "center"}),
+                dcc.Input(
+                    id="new-modul-input",
+                    type="text",
+                    placeholder="Modulname",
+                    style={
+                        "marginTop": "10px",
+                        "marginLeft": "20px",
+                        "padding": "10px",
+                        "fontSize": "16px",
+                        "borderRadius": "5px",
+                        "width": "200px",
+                        "textAlign": "center",
+                    }
+                ),
+                #Speicher Button
+                html.Button(
+                    "Speichern",
+                    id="add-modul-button",
+                    n_clicks=0,
+                    style={
+                        "marginLeft": "80px",
+                        "padding": "10px",
+                        "fontSize": "16px",
+                        "borderRadius": "5px",
+                        "marginTop": "5px",
+
+                    }
+                ),
+                #Output der Module
+                html.Div(
+                    id="new-modul-output",
+                    style={
+                        "marginTop": "10px",
+                        "fontSize": "16px",
+                        "color": "green"
+                    }
+                )
+            ])
+        ], style={
+            "width": "20%",
+            "verticalAlign": "top",
+            "padding": "10px",
+            "boxSizing": "border-box",
+        }),
+
+        # 3) die rechte Spalte: Ziel 2 + Notendurchschnittsdiagramm
+        html.Div([
+            html.H3("Ziel 2: Notendurchschnitt 3", style={
+                "textAlign": "center",
+                "border": "2px solid black",
+                "borderRadius": "10px",
+                "padding": "5px",
+                "marginTop": "36px",
+                "marginBottom": "20px",
+            }),
+            #Dropdown-Menü zur Auswahl der aktiven Module
+            dcc.Dropdown(
+                id="modul-dropdown",
+                options=[],
+                placeholder="Modul-Auswählen...",
+                style={
+                    "width": "80%",
+                    "marginTop": "30px",
+                    "textAlign": "center",
+                    "marginLeft": "40px",
+                }
+            ),
+            #Eingabefeld für die Noteneingabe des auswählten Moduls
+            dcc.Input(
+                id="note-input",
+                type="number",
+                step=0.1,
+                placeholder="Neue Note eingeben",
+                style={
+                    "marginTop": "25px",
+                    "marginLeft": "40px",
+                    "padding": "10px",
+                    "fontSize": "16px",
+                    "borderRadius": "5px",
+                    "width": "200px",
+                    "textAlign": "center",
+                }
+            ),
+            #Speicher Button
+            html.Button(
+                "Speichern",
+                id="update-save-button",
+                n_clicks=0,
+                style={
+                    "position": "absolute",
+                    "top": "280px",
+                    "padding": "10px",
+                    "fontSize": "16px",
+                    "borderRadius": "5px",
+                    "right": "60px",
+                }
+            ),
+            html.Div(
+                id="selected-modul-output",
+                style={
+                    "marginTop": "20px",
+                    "fontSize": "18px",
+                }
+            ),
+            # Kreisdiagramm für Notendurchschnitt
+            dcc.Graph(
+                id="avg-circle-graph",
+                figure={},
+                style={
+                    "width": "300px",
+                    "height": "300px",
+                    "marginTop": "50px",
+                    "marginLeft": "50px",
+                },
+            ),
+            #Reset Button
+            html.Button(
+                "Reset",
+                id="nd-reset-button",
+                n_clicks=0,
+                style={
+                    "marginTop": "20px",
+                    "marginLeft": "180px",
+                    "padding": "10px",
+                    "fontSize": "16px",
+                    "borderRadius": "5px",
+                }
+            )
+        ], style={
+            "width": "30%",
+            "verticalAlign": "top",
+            "padding": "20px",
+            "boxSizing": "border-box",
+        }),
+    ], style={
+        "display": "flex",
+        "justifyContent": "space-between",
+    })
+])
+
+# Callback für Credits-Kreisdiagramm & Counter
+# Gleiche Reihenfolge wie in Funktionsrückgabe
+# (Fig, Credits-Text, Earned_Credits)
+@app.callback(
+    [
+        Output("kreisdiagramm", "figure"),
+        Output("credits-counter", "children"),
+        Output("store-earned-credits", "data"),
+    ],
+    [
+        Input("save-button", "n_clicks"),
+        Input("reset-button", "n_clicks"),
+    ],
+    [
+        State("credits-input", "value"),
+        State("store-earned-credits", "data"),
+    ]
+)
+def update_pie_charts(_save_clicks, _reset_clicks, credits_input, earned_credits):
+    """
+    Aktualisiert das Kreisdiagramm auf der linken Seite, basierend auf den Credits-Eingaben
+    + speichern und resetten.
+
+    Args:
+        credits_input, von dem Nutzer eingegebene Credits.
+        earned_credits, alle Credits die eingegeben wurden addiert.
+
+    Returns:
+        figure von plotly, Kreisdiagramm der Credits
+        str, Anzeige der gesammelten Credits "x/180" auf dem credits-counter Feld
+        int, Aktualisierte Credits, auch die in store-earned-credits gespeichert werden.
+    """
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "reset-button":
+        earned_credits = 0
+    elif button_id == "save-button" and credits_input is not None:
+        earned_credits += credits_input
+
+    #Kreisdiagramm 100 % erreicht bei 15 Credits (Ziel 1)
+    values = \
+        [earned_credits,
+         max(ziel_credits - earned_credits,0)]
+    figure = go.Figure(
+        go.Pie(
+            values=values,
+            labels=["Erreichte Credits", "Verbleibende Credits"],
+            hole=0.5,
+            marker=dict(colors=["green", "lightgrey"]),
+        )
+    )
+    figure.update_layout(
+        title="Credits pro Semester",
+        annotations=[
+            dict(
+                text=f"{earned_credits}/{ziel_credits}",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(color="black", size=12),
+            )
+        ])
+    _credits_text = f"{earned_credits}/{total_credits}"
+    return figure, f"{earned_credits}/{total_credits}", earned_credits
+
+# Callback für Module & Notendurchschnitt (Kreisdiagramm)
+@app.callback(
+    [
+        Output("store-modul", "data"),
+        Output("modul-list", "children"),
+        Output("modul-dropdown", "options"),
+        Output("new-modul-output", "children"),
+        Output("selected-modul-output", "children"),
+        Output("avg-circle-graph", "figure"),
+    ],
+    [
+        Input("add-modul-button", "n_clicks"),
+        Input("update-save-button", "n_clicks"),
+        Input("nd-reset-button", "n_clicks"),
+    ],
+    [
+        State("new-modul-input", "value"),
+        State("modul-dropdown", "value"),
+        State("note-input", "value"),
+        State("store-modul", "data"),
+    ]
+)
+def manage_modules(_add_clicks, _update_clicks,_nd_reset_clicks, new_module_name, selected_module_name, new_note, module_data):
+    """
+    Verarbeitet das Speichern/resetten und Bearbeiten von Modulen
+
+     Args:
+         _add_clicks, klicks für "Neues Modul hinzufügen"
+         _update_clicks, klicks auf "speichern" für Noteneingabe
+         _nd_reset_clicks, klicks auf "reset" für Notendurchschnitt und aktive Module
+         new_module_name, Eingabe von dem Namen des hinzugefügten Moduls
+         selected_module_name, Name in dem DropDown-Menü
+         new_note, Note, die dem Modul angerechnet werden soll
+         module_data, aktuell gespeicherte Module als Liste
+
+    Returns:
+        list, Aktualisierte Modulliste als Python-Liste
+        list of dash.html.Li, Darstellung der "modul-list"
+        list of dict, Dropdown-Optionen anzeigen
+        str, Meldung anzeigen in "new-modul-output"
+        str, Meldung anzeigen in "selected-modul-output"
+        plotly.graph_objs.Figure, Aktuelle Notendurchschnitts-Grafik als Kreisdiagramm
+     """
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return [
+            dash.no_update, dash.no_update, dash.no_update,
+            dash.no_update, dash.no_update, dash.no_update
+        ]
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    updated_module_data = module_data[:]
+    new_modul_output = dash.no_update
+    selected_output = dash.no_update
+
+    # Alle Module löschen
+    if button_id == "nd-reset-button":
+        updated_module_data = []
+    # Modul hinzufügen
+    elif button_id == "add-modul-button":
+        if not new_module_name:
+            new_modul_output = "bitte Modul-Name eingeben"
+        else:
+            new_mod = {"name": new_module_name, "credits": 5, "note": 3}
+            updated_module_data.append(new_mod)
+            new_modul_output = f"Neues Modul: '{new_module_name}' hinzugefügt"
+
+    # Note aktualisieren
+    elif button_id == "update-save-button":
+        if (selected_module_name is not None) and (new_note is not None):
+            for m in updated_module_data:
+                if m["name"] == selected_module_name:
+                    m["note"] = float(new_note)
+                    selected_output = f"Gewähltes Modul: {m['name']}, Note: {m['note']}"
+                    break
+
+    # Notendurchschnitt berechnen
+    if len(updated_module_data) > 0:
+        avg_val = sum([mod["note"] for mod in updated_module_data]) / len(updated_module_data)
+    else:
+        avg_val = 0
+
+    # Farbe des Kreisdiagramms je nach Durchschnitt
+    circle_color = "green" if avg_val <= 3 else "red"
+    fig_circle = go.Figure()
+
+    #Mit Farbe gefüllter Kreis
+    fig_circle.add_shape(
+        type="circle",
+        xref="paper", yref="paper",
+        x0=0, y0=0,
+        x1=1, y1=1,
+        fillcolor=circle_color,
+        line_color=circle_color,
+    )
+
+    #Weißes Rechteck im Notendurchschnitts-Kreisdiagramm
+    fig_circle.add_shape(
+        type="rect",
+        xref="paper", yref="paper",
+        x0=0.3, y0=0.4,
+        x1=0.7, y1=0.6,
+        fillcolor="white",
+        line_color="black"
+    )
+
+    #Durchschnitts-Text in der Mitte
+    fig_circle.add_annotation(
+        x=0.3,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        text=f"Notendurchschnitt:\n"
+                f"{avg_val:.1f}",
+
+        showarrow=False,
+        font=dict(size=10, color="black")
+
+    )
+    #Axen ausblenden
+    fig_circle.update_xaxes(visible=False, range=[0,1])
+    fig_circle.update_yaxes(visible=False, range=[0,1])
+    fig_circle.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+
+    #Modul-Liste für mittlere Spalte
+    updated_modul_list = [
+        html.Li(f"{m['name']} - Credits: {m['credits']} - Note: {m['note']}")
+        for m in updated_module_data
+    ]
+    #Optionen für Dropdown
+    updated_dropdown = [{"label": m["name"], "value": m["name"]} for m in updated_module_data]
+
+    return [
+        updated_module_data,
+        updated_modul_list,
+        updated_dropdown,
+        new_modul_output,
+        selected_output,
+        fig_circle,
+    ]
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
