@@ -1,0 +1,181 @@
+from datetime import datetime, date
+
+
+class Studiengang:
+    def __init__(self,studiengang_id, name, bachelor, total_credits, dauer):
+        self.studiengang_id = studiengang_id
+        self.name = name
+        self.bachelor = bachelor
+        self.total_credits = total_credits
+        self.dauer = dauer
+        self.semester_list = []
+
+
+#Methode 1 Semester Hinzufügen
+    def hinzufuegen_semester(self, semester):
+        """Fügt ein Semester der Liste hinzu"""
+        self.semester_list.append(semester)
+
+#Methode 2 Semester Entfernen
+    def entfernen_semester(self, semester):
+        """Entfernt ein Semester aus der Liste"""
+        if semester in self.semester_list:
+            self.semester_list.remove(semester)
+        else:
+            print(f"Semester {semester} nicht gefunden!")
+
+
+#Methode 3 Module Anzeigen
+    def anzeigen_module(self):
+        """Gibt eine Liste aller Semester aus"""
+        module_list = []
+        for semester in self.semester_list:
+            module_list.extend(semester.modul_list)
+        return module_list
+
+    def __repr__(self):
+        return (f"Studiengang:\n"
+            f" -ID: {self.studiengang_id}\n"
+            f" -Name: {self.name}\n"
+            f" -Bachelor: {self.bachelor}\n"
+            f" -TotalCredits: {self.total_credits}\n"
+            f" -Dauer: {self.dauer} Semester\n"
+            f" -Semester:\n\n" +
+            "\n".join([f" {sem}"for sem in self.semester_list]) +
+            "\n"
+
+        )
+
+
+
+
+class Semester:
+    def __init__(self, semester_id, nummer, start_datum: date , end_datum: date):
+        self.semester_id = semester_id
+        self.nummer = nummer
+        self.start_datum = start_datum
+        self.end_datum = end_datum
+        self.modul_list = []
+
+    #Modul Hinzufügen
+    def hinzufuegen_modul(self, modul):
+        self.modul_list.append(modul)
+
+    #Modul entfernen
+    def entfernen_modul(self, modul):
+        if modul in self.modul_list:
+            self.modul_list.remove(modul)
+        else:
+            print(f"Modul {modul} nicht gefunden!")
+
+
+
+    def __repr__(self):
+        return (f"Semester:\n"
+            f" -ID: {self.semester_id}\n"
+            f" -Nummer: {self.nummer}\n"
+            f" -StartDatum: {self.start_datum}\n"
+            f" -EndDatum: {self.end_datum}\n"
+            f" -ModulList:\n\n" +
+            "\n\n".join([f" {mod}"for mod in self.modul_list]) +
+            "\n"
+
+        )
+
+
+
+
+
+
+class Modul:
+    def __init__(self, modul_id, name, beschreibung, credit):
+        self.modul_id = modul_id
+        self.name = name
+        self.beschreibung = beschreibung
+        self.credit = credit
+        self.noten_list = []
+
+    def hinzufuegen_exam_note(self, note):
+        """Fügt eine Prüfungsleistung hinzu"""
+        self.noten_list.append(note)
+
+    def entfernen_exam_note(self, note):
+        if note in self.noten_list:
+            self.noten_list.remove(note)
+        else:
+            print(f"Note {note} nicht gefunden!")
+
+    def berechne_notendurchschnitt(self):
+        """Berechnet den Notendurchschnitt der Noten"""
+        if len(self.noten_list) > 0:
+            return sum(n.note for n in self.noten_list) / len(self.noten_list)
+        else:
+            return 0.0
+
+    def __repr__(self):
+        return (f"Modul:\n"
+            f"- ID: {self.modul_id}\n"
+            f"- Name: {self.name}\n"
+            f"- Beschreibung: {self.beschreibung}\n"
+            f"- Credit: {self.credit}\n"
+            f"- Noten: {len(self.noten_list)}\n"
+            "\n"
+        )
+
+
+
+
+
+
+
+class Pruefungsleistung:
+    def __init__(self, exam_id, art: str, note: float, datum: str):
+        self.exam_id = exam_id
+        self.art = art
+        self.note = float(note)
+        self.datum = self.format_datum(datum)
+
+    def format_datum(self, datum):
+        """Formatierung des Datums"""
+        try:
+            date_obj = datetime.strptime(datum, "%d.%m.%Y")
+            return date_obj.strftime("%d.%m.%Y")
+        except ValueError:
+            raise ValueError(f"Ungültiges Datum: {datum}. Erwartetes Format: 'dd/mm/yyyy'.")
+
+    def bewertung(self):
+        """Bewertung der Note"""
+        if self.note <= 4.0:
+            return "Bestanden"
+        else:
+            return "Nicht Bestanden"
+
+    def anzeigen_info(self):
+        """Gibt Prüfungsleistung als String zurück"""
+        return (f"Pruefungsleistung:\n"
+                f"- ID: {self.exam_id}\n"
+                f"- Art: {self.art}\n"
+                f"- Note: {self.note}\n"
+                f"- Datum: {self.datum}\n"
+                f"- Bewertung: {self.bewertung()}\n")
+
+    def __repr__(self):
+        """Anzeige der Prüfungsleistung"""
+        return f"Pruefungsleistung(ID: {self.exam_id}, Art: {self.art}, Note: {self.note:1f}, datum: {self.datum})"
+
+
+
+studiengang = Studiengang(7389494, "Python Basics", "Bachelor of Science", 180, 6)
+
+semester = Semester(74748, 4, start_datum=date(2024, 12, 20), end_datum=date(2026, 12, 30))
+studiengang.hinzufuegen_semester(semester)
+
+modul = Modul(7389494, "Python Basics", "Programmierung", 5)
+semester.hinzufuegen_modul(modul)
+
+exam = Pruefungsleistung(585, "Klausur", 5.0, "31.12.2024")
+modul.hinzufuegen_exam_note(exam)
+
+print(studiengang)
+print()
+print(exam.anzeigen_info())
